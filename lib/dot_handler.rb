@@ -1,17 +1,16 @@
-class DotHandler < ActionView::TemplateHandlers::ERB
+class DotHandler < ActionView::TemplateHandler
   
-  Formats = Set.new(['png', 'gif'])
-  DefaultFormat = 'png'
-  
-  def render(template, local_assigns = {})
-    format = DotHandler::Formats.include?(format = @view.template_format)? format : DotHandler::DefaultFormat
-    
-    @view.controller.headers["Content-Type"] ||= "image/#{format}"
-    
-    IO.popen("dot -T#{format}", 'r+') do |io|
-      io.write(super(template))
-      io.close_write
-      io.read
-    end
+  def compile(path)
+    <<-EOS
+      controller.response.content_type ||= Mime::PNG
+      
+      #{ActionView::Template.handler_class_for_extension('erb').call(path)}
+      @output_buffer = IO.popen("dot -Tpng", 'r+') do |io|
+        io.write(@output_buffer)
+        io.close_write
+        io.read
+      end
+    EOS
   end
+  
 end
